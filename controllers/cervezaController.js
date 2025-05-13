@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const cervezaController = {
   // 1. Cervezas más baratas global o por supermercado
   listarBaratas: async (req, res) => {
+    console.log('📡 Endpoint /cervezas/baratas alcanzado');
     const { page = 1, limit = 12, supermercado } = req.query;
     const offset = (page - 1) * limit;
 
@@ -26,6 +27,9 @@ const cervezaController = {
       });
 
       const pages = Math.ceil(total / limit);
+
+      console.log('🌀 Incluyendo modelos con opciones:', includeOptions);
+
 
       // Obtener los resultados paginados
       const resultados = await ProductoSuper.findAll({

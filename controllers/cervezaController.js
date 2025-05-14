@@ -1,66 +1,63 @@
-const { Producto, ProductoSuper, Supermercado, sequelize } = require('../database/models');
-const { Op } = require('sequelize');
-
+const { getDB } = require("../db/mongo.js");
 const cervezaController = {
   // 1. Cervezas más baratas global o por supermercado
   listarBaratas: async (req, res) => {
-    console.log('📡 Endpoint /cervezas/baratas alcanzado');
-    const { page = 1, limit = 12, supermercado } = req.query;
-    const offset = (page - 1) * limit;
+    const db = getDB();
+    const collection = db.collection("productos");
+
+    const {
+      page = 1,
+      limit = 12,
+      supermercado = '',
+      query = ''
+    } = req.query;
+
+    const pageInt = parseInt(page);
+    const limitInt = parseInt(limit);
+    const skip = (pageInt - 1) * limitInt;
 
     try {
-      const includeOptions = [
-        { model: Producto, as: 'producto' },
-        { model: Supermercado, as: 'supermercado' }
-      ];
+      const filtros = {};
 
-      // Filtrar por supermercado si se especifica
       if (supermercado) {
-        includeOptions[1].where = {
-          nombre: { [Op.like]: `%${supermercado}%` }
-        };
+        filtros.Supermercado = { $regex: supermercado, $options: "i" };
       }
 
-      // Contar el total de resultados
-      const total = await ProductoSuper.count({
-        include: includeOptions
-      });
+      if (query) {
+        filtros["nombre"] = { $regex: query, $options: "i" };
+      }
 
-      const pages = Math.ceil(total / limit);
+      const total = await collection.countDocuments(filtros);
+      const pages = Math.ceil(total / limitInt);
 
-      console.log('🌀 Incluyendo modelos con opciones:', includeOptions);
-
-
-      // Obtener los resultados paginados
-      const resultados = await ProductoSuper.findAll({
-        include: includeOptions,
-        order: [['precioxlitro', 'ASC']],
-        offset: parseInt(offset),
-        limit: parseInt(limit)
-      });
+      const resultados = await collection.find(filtros)
+        .sort({ "precioLitro": 1 })
+        .skip(skip)
+        .limit(limitInt)
+        .toArray();
 
       const respuesta = resultados.map(p => ({
-        producto: p.producto.nombre,
-        supermercado: p.supermercado.nombre,
-        precio: p.precio !== null ? parseFloat(p.precio).toFixed(2) : null,
-        precioxlitro: p.precioxlitro !== null ? parseFloat(p.precioxlitro).toFixed(2) : null,
-        descuento: p.descuentos || null,
-        imagen_url: p.imagen_url || null
+        producto: p["nombre"],
+        supermercado: p["supermercado"],
+        precio: p["precio"],
+        precioxlitro: p["precioLitro"],
+        descuento: p["descuentos"],
+        imagen_url: p["imagenUrl"]
       }));
 
       res.json({
         total,
         pages,
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageInt,
+        limit: limitInt,
         resultados: respuesta
       });
 
     } catch (error) {
-      res.status(500).json({ mensaje: 'Error al listar cervezas baratas', error: error.message });
+      console.error("❌ Error en listarBaratas:", error);
+      res.status(500).json({ mensaje: "Error al obtener cervezas", error: error.message });
     }
   },
-
 
   // 2. Buscar cerveza por nombre o marca
   buscarPorNombre: async (req, res) => {

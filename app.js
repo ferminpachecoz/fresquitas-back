@@ -4,6 +4,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 let cors = require("cors")
+const { connectToMongo } = require("./db/mongo");
 
 var cervezasRouter = require('./routes/cerveza.js');
 
@@ -17,6 +18,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/cervezas', cervezasRouter);
+connectToMongo();
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

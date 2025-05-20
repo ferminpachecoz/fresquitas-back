@@ -109,50 +109,14 @@ const cervezaController = {
       res.status(500).json({ mensaje: 'Error en la búsqueda', error: error.message });
     }
   },
-  // 3. Obtener cervezas sin alcohol
-  listarSinAlcohol: async (req, res) => {
+  allMarcas: async (req,res)=>{
     const db = getDB();
-    const collection = db.collection("productos");
-
-    const { page = 1, limit = 12 } = req.query;
-    const pageInt = parseInt(page);
-    const limitInt = parseInt(limit);
-    const skip = (pageInt - 1) * limitInt;
-
     try {
-      const filtro = {
-        nombre: { $regex: "sin alcohol", $options: "i" }
-      };
-
-      const total = await collection.countDocuments(filtro);
-      const pages = Math.ceil(total / limitInt);
-
-      const resultados = await collection.find(filtro)
-        .sort({ precioLitro: 1 })
-        .skip(skip)
-        .limit(limitInt)
-        .toArray();
-
-      const respuesta = resultados.map(p => ({
-        producto: p.nombre,
-        supermercado: p.supermercado,
-        precio: p.precio,
-        precioxlitro: p.precioLitro,
-        descuento: p.descuentos,
-        imagen_url: p.imagenUrl
-      }));
-
-      res.json({
-        total,
-        pages,
-        page: pageInt,
-        limit: limitInt,
-        resultados: respuesta
-      });
-
-    } catch (error) {
-      console.error("❌ Error en listarSinAlcohol:", error);
-      res.status(500).json({ mensaje: "Error al obtener cervezas sin alcohol", error: error.message });
+      const marcasUnicas = await db.collection("productos").distinct("marca");
+      res.json(marcasUnicas.sort());
+    }catch (error) {
+      console.error("Error al obtener marcas:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
     }
   }
 

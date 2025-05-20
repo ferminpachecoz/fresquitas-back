@@ -9,7 +9,8 @@ const cervezaController = {
       page = 1,
       limit = 12,
       supermercado = '',
-      query = ''
+      query = '',
+      marca = ''
     } = req.query;
 
     const pageInt = parseInt(page);
@@ -27,6 +28,10 @@ const cervezaController = {
         filtros["nombre"] = { $regex: query, $options: "i" };
       }
 
+      if(marca){
+        filtros.marca = { $regex: marca, $options: "i" };
+      }
+
       const total = await collection.countDocuments(filtros);
       const pages = Math.ceil(total / limitInt);
 
@@ -42,7 +47,8 @@ const cervezaController = {
         precio: p["precio"],
         precioxlitro: p["precioLitro"],
         descuento: p["descuentos"],
-        imagen_url: p["imagenUrl"]
+        imagen_url: p["imagenUrl"],
+        marca: p["marca"]
       }));
 
       res.json({
